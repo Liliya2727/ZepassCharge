@@ -7,6 +7,7 @@ REPLACE="
 
 "
 sleep 2
+ui-print
 ui_print
 ui_print "ZEPASSCHARGE!"
 ui_print 

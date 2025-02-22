@@ -1,4 +1,4 @@
-com.example.games
+com.example.gamess
 adventure.rpg.anime.game.vng.ys6
 age.of.civilizations2.jakowski.lukasz
 air.com.ubisoft.brawl.halla.platform.fighting.action.pvp

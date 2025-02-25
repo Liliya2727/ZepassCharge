@@ -38,12 +38,22 @@ apply() {
 
 # Enable bypass charging
 startBypass() {
-	apply 1 /sys/devices/platform/charger/bypass_charger
+	apply "0 1" /proc/mtk_battery_cmd/current_cmd
 }
 
 # Disable bypass charging
 disableBypass() {
-	apply 0 /sys/devices/platform/charger/bypass_charger
+	apply "0 0" /proc/mtk_battery_cmd/current_cmd
+}
+
+# Start Battery Shifting
+startShifting() {
+     apply 1 /sys/devices/platform/charger/bypass_charger
+}
+
+# Start Battery Shifting
+stopShifting() {
+     apply 0 /sys/devices/platform/charger/bypass_charger
 }
 
 # Apply mode based on game detection
@@ -61,40 +71,75 @@ apply_mode() {
         if [ "$cur_mode" -ne 0 ]; then
             export cur_mode=0
             disableBypass
+            stopShifting
         fi
         return
     fi
 
+    # **Battery above or equal to 30% → Start bypass, stop shifting**
+    if [ "$battery_level" -ge 30 ]; then        
         if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
             export cur_mode=1
             /system/bin/am start -a android.intent.action.MAIN -e toasttext "Applying Bypass..." -n bellavita.toast/.MainActivity
             sleep 2
             startBypass 
         fi
+    # **Battery at exactly 29% → Start shifting, disable bypass**
+    elif [ "$battery_level" -eq 29 ]; then
+        if [ "$1" -eq 2 ] && [ "$cur_mode" -ne 2 ]; then
+            export cur_mode=2
+            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Shifting.., Bypass will be applied.." -n bellavita.toast/.MainActivity
+            sleep 1
+            startShifting
+            sleep 1
+            disableBypass
+        fi
+    # **Battery at or below 29% → Disable both**
+    elif [ "$battery_level" -le 29 ]; then
+        if [ "$1" -eq 3 ] && [ "$cur_mode" -ne 3 ]; then
+            export cur_mode=3
+            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass will applied at 30%,Keep Charging..." -n bellavita.toast/.MainActivity
+            sleep 1
+            disableBypass
+            sleep 1
+            stopShifting
+            sleep 1
+        fi 
+    fi
 
+    # **If no game is active, disable everything**
     if [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
         export cur_mode=0
         /system/bin/am start -a android.intent.action.MAIN -e toasttext "No apps active, disabling bypass.." -n bellavita.toast/.MainActivity
         sleep 1
         disableBypass
+        sleep 1
+        stopShifting
     fi
 }
 
 # Monitoring function for game detection
 monitoring() {
-	while true; do
-		window=$(dumpsys window)
-		gamestart=$(echo "$window" | grep -E 'mCurrentFocus|mFocusedApp' | grep -Eo "$game_list_filter" | tail -n 1)
-		screenoff=$(echo "$window" | grep "mScreen" | grep -Eo "false" | tail -n 1)
+    while true; do
+        window=$(dumpsys window)
+        gamestart=$(echo "$window" | grep -E 'mCurrentFocus|mFocusedApp' | grep -Eo "$game_list_filter" | tail -n 1)
+        screenoff=$(echo "$window" | grep "mScreen" | awk '{print $NF}') # More reliable detection
+        battery_level=$(BatteryPercentage)
 
-		if [ -n "$gamestart" ] && [ "$screenoff" != "false" ]; then
-			pid=$(pgrep -f "$gamestart")
-			apply_mode 1 # Enable Bypass Charge
-		else
-			apply_mode 0 # Disable Bypass Charge
-		fi
-	sleep 5
-done		
+        if [ -n "$gamestart" ] && [ "$screenoff" != "false" ]; then
+            if [ "$battery_level" -ge 30 ]; then
+                apply_mode 1 # Start bypass, stop shifting
+            elif [ "$battery_level" -eq 29 ]; then
+                apply_mode 2 # Start shifting, disable bypass
+            elif [ "$battery_level" -le 28 ]; then
+                apply_mode 3 # Disable both
+            fi
+        else
+            apply_mode 0 # Disable all when no game is active
+        fi
+
+        sleep 5
+    done
 }
 
 # Run reboot check before starting monitoring

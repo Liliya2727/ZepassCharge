@@ -9,16 +9,13 @@ REPLACE="
 sleep 2
 ui-print
 ui_print
-ui_print "ZEPASSCHARGET2!"
+ui_print "       ZEPASSCHARGE Type1 v2!       "
 ui_print 
-ui_print "by : @Zexshia!"
 ui_print
-sleep 0.2
-ui_print "Device : $(getprop ro.product.board) "
-
+ui_print "- by : @Zexshia!"
+sleep 1
+ui_print "- Device : $(getprop ro.product.board) "
 sleep 2
-
-ui_print
 ui_print "- Extracting module files"
 mkdir /data/ZepassCharge
 unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2

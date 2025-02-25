@@ -4,6 +4,3 @@
 
 # remove ZepassCharge data folder
 rm -rf /data/ZepassCharge
-
-
-#EndOfFile

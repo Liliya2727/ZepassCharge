@@ -1,16 +1,31 @@
 #!/bin/sh
-MODDIR=${0%/*}
-bypassflag="/data/local/tmp/tempbypass"
+
+# Generate game list filter
+game_list_filter="com.example.gamelist1|com.example.gamelist2$(awk '!/^[[:space:]]*$/ && !/^#/ && !(/[[:alnum:]]+[[:space:]]+[[:alnum:]]+[[:space:]]+[[:alnum:]]+/) {sub("-e ", ""); printf "|%s", $0}' "/data/ZepassCharge/gamelist.txt")"
+
+# Function to check if the phone is charging
+isCharging() {
+    if [ -f /sys/class/power_supply/battery/status ]; then
+        cat /sys/class/power_supply/battery/status
+    elif [ -f /sys/devices/platform/battery/power_supply/battery/status ]; then
+        cat /sys/devices/platform/battery/power_supply/battery/status
+    elif command -v termux-battery-status >/dev/null 2>&1; then
+        termux-battery-status | jq -r '.status'
+    elif [ -f /proc/stat ]; then
+        grep "charging" /proc/stat | awk '{print $2}'  # May not work on all devices
+    else
+        echo "Charging status not found"
+    fi
+}
 
 # Function to write values to sysfs/proc files
 apply() {
-	if [ -f "$2" ]; then
-		chmod 644 "$2" >/dev/null 2>&1
-		echo "$1" >"$2" 2>/dev/null
-		chmod 444 "$2" >/dev/null 2>&1
+	if [ -f $2 ]; then
+		chmod 644 $2 >/dev/null 2>&1
+		echo $1 >$2 2>/dev/null
+		chmod 444 $2 >/dev/null 2>&1
 	fi
 }
-
 
 # Enable bypass charging with path detection
 startBypass() {
@@ -97,37 +112,61 @@ disableBypass() {
     echo "No valid path found to disable bypass charging."
 }
 
-# apply mode based on game detection
+# Apply mode based on game detection
 apply_mode() {
-	# Ensure cur_mode is initialized
-	if [ -z "$cur_mode" ]; then
-		export cur_mode=0
-	fi
-	if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
-		export cur_mode=1
-		/system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
-		sleep 1
-		startBypass	
-elif [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
-		export cur_mode=0
-		/system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
-		sleep 1
-		disableBypass
-	fi
+    charging_status=$(isCharging)
+
+    # Ensure cur_mode is initialized
+    if [ -z "$cur_mode" ]; then
+        export cur_mode=0
+    fi
+    
+if ! echo "$charging_status" | grep -iq "charging"; then
+    if [ "$cur_mode" -ne 0 ]; then
+        export cur_mode=0
+        disableBypass
+    fi
+    return
+fi
+
+        if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
+            export cur_mode=1
+            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
+            sleep 2
+            startBypass 
+        fi
+
+    if [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
+        export cur_mode=0
+        /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
+        sleep 1
+        disableBypass
+    fi
 }
 
-# Monitoring function
+# Monitoring function for game detection
 monitoring() {
 	while true; do
-		if [ ! -f "$bypassflag" ]; then		
+		window=$(dumpsys window)
+		gamestart=$(echo "$window" | grep -E 'mCurrentFocus|mFocusedApp' | grep -Eo "$game_list_filter" | tail -n 1)
+		screenoff=$(echo "$window" | grep "mScreen" | grep -Eo "false" | tail -n 1)
+
+		if [ -n "$gamestart" ] && [ "$screenoff" != "false" ]; then
+			pid=$(pgrep -f "$gamestart")
 			apply_mode 1 # Enable Bypass Charge
 		else
 			apply_mode 0 # Disable Bypass Charge
 		fi
-		sleep 2 # Adjust sleep duration as needed
-	done
+	sleep 5
+done		
 }
 
-monitoring &
+# Start monitoring games
+monitoring
 
-# This Shell Script is Open Source, you can edit it if you want. Don't forget to credit @Zexshia.
+
+
+
+
+
+#This Shell Script is OpenSource, you can edit it if you want don't forget to Credit @Zexshia

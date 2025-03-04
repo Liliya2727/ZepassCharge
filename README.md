@@ -26,11 +26,11 @@ I have created **three different versions** of this module, each with a unique a
 
 ## Link to each version
 
-- [ZepassCharge T1](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT1U) 
+- [ZepassCharge T1](https://github.com/Liliya2727/ZepassCharge/releases/tag/ZepassChargeT1Uv1) 
 
-- [ZepassCharge T2](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT2U) 
+- [ZepassCharge T2](https://github.com/Liliya2727/ZepassCharge/releases/tag/ZepassChargeT2Uv1) 
  
-- [ZepassCharge T3](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT3U)
+- [ZepassCharge T3](https://github.com/Liliya2727/ZepassCharge/releases/tag/ZepassChargeT3Uv1)
 
 ## Contributing
 **Want to improve ZepassCharge? Feel free to fork this repository**

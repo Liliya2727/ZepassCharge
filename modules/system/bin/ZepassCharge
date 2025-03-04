@@ -6,16 +6,26 @@ game_list_filter="com.example.gamelist1|com.example.gamelist2$(awk '!/^[[:space:
 # Function to check if the phone is charging
 isCharging() {
     if [ -f /sys/class/power_supply/battery/status ]; then
-        cat /sys/class/power_supply/battery/status
+        status=$(cat /sys/class/power_supply/battery/status)
     elif [ -f /sys/devices/platform/battery/power_supply/battery/status ]; then
-        cat /sys/devices/platform/battery/power_supply/battery/status
+        status=$(cat /sys/devices/platform/battery/power_supply/battery/status)
     elif command -v termux-battery-status >/dev/null 2>&1; then
-        termux-battery-status | jq -r '.status'
+        status=$(termux-battery-status | jq -r '.status')
     elif [ -f /proc/stat ]; then
-        grep "charging" /proc/stat | awk '{print $2}'  # May not work on all devices
+        status=$(grep -i "charging" /proc/stat | awk '{print $2}')  # May not work on all devices
     else
-        echo "Charging status not found"
+        echo "Unknown"
+        return
     fi
+
+    # Convert to lowercase for consistency
+    status=$(echo "$status" | tr '[:upper:]' '[:lower:]')
+
+    # Check for multiple valid charging states
+    case "$status" in
+        "charging"|"full"|"not discharging") echo "Charging" ;;
+        *) echo "Not Charging" ;;
+    esac
 }
 
 # Function to write values to sysfs/proc files
@@ -121,13 +131,14 @@ apply_mode() {
         export cur_mode=0
     fi
     
-if ! echo "$charging_status" | grep -iq "charging"; then
+if ! echo "$charging_status" | grep -Eiq "Charging|charging|full|not discharging"; then
     if [ "$cur_mode" -ne 0 ]; then
         export cur_mode=0
         disableBypass
     fi
     return
 fi
+
 
         if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
             export cur_mode=1

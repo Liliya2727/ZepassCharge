@@ -1,7 +1,7 @@
 id=ZepassCharge
 name=ZepassCharge!!
-version=Type 3U
-versionCode=1301
+version=Type 1U | v1
+versionCode=1101
 author=Zexshia
-description=Status • Disabled❌
-updateJson=https://raw.githubusercontent.com/Liliya2727/ZepassCharge/ZepasschargeT3U/zepassupdate.json
+description=Universal bypass charging module!
+updateJson=https://raw.githubusercontent.com/Liliya2727/ZepassCharge/ZepasschargeT2U/zepassupdate.json

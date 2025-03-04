@@ -32,14 +32,15 @@ I have created **three different versions** of this module, each with a unique a
  
 - [ZepassCharge T3](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT3U)
 
-##Contributing
+## Contributing
 **Want to improve ZepassCharge? Feel free to fork this repository**
 
-##Feedback & Issues
+## Feedback & Issues
 
 **If you encounter any issues or have suggestions, open an issue on GitHub or contribute directly!**
 
 🔗 **GitHub Repository:** [ZepassCharge](https://github.com/Liliya2727/ZepassCharge)
+
 🔗 **Fork the Repo:** [Fork Here](https://github.com/Liliya2727/ZepassCharge/fork)
 
 ## 📖 Usage  

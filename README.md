@@ -18,7 +18,19 @@ I have created **three different versions** of this module, each with a unique a
 - ✅ **Active automatically on gaming** (T1 & T2)  
 - ✅ **Battery threshold at 30%** (T1)  
 - ✅ **Activate manually** (T3)  
-- ✅ **Reduce heating on gaming**  
+- ✅ **Reduce heating on gaming**
+
+## Compatibility 
+- **Works on KSU Magisk and Apatch**
+- **Compatible for Various Chipset (if supported)**
+
+## Link to each versio 
+
+- [ZepassCharge T1](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT1U) |
+
+- [ZepassCharge T2](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT2U) |
+ 
+- [ZepassCharge T3](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT3U) |
 
 ## 📖 Usage  
 ```bash

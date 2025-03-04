@@ -24,7 +24,7 @@ I have created **three different versions** of this module, each with a unique a
 - **Works on KSU Magisk and Apatch**
 - **Compatible for Various Chipset (if supported)**
 
-## Link to each versio 
+## Link to each version
 
 - [ZepassCharge T1](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT1U) 
 

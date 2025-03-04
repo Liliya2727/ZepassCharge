@@ -123,6 +123,7 @@ disableBypass() {
 }
 
 # Apply mode based on game detection
+# Apply mode based on game detection
 apply_mode() {
     charging_status=$(isCharging)
 
@@ -131,27 +132,21 @@ apply_mode() {
         export cur_mode=0
     fi
     
-if ! echo "$charging_status" | grep -Eiq "Charging|charging|full|not discharging"; then
-    if [ "$cur_mode" -ne 0 ]; then
-        export cur_mode=0
-        disableBypass
-    fi
-    return
-fi
-
-
+    # Check if device is charging
+    if echo "$charging_status" | grep -Eiq "Charging|charging|full|not discharging"; then
         if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
             export cur_mode=1
             /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
             sleep 2
-            startBypass 
+            startBypass
         fi
-
-    if [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
-        export cur_mode=0
-        /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
-        sleep 1
-        disableBypass
+    else
+        if [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
+            export cur_mode=0
+            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
+            sleep 1
+            disableBypass
+        fi
     fi
 }
 

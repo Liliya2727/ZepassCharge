@@ -1,4 +1,4 @@
-ZEPASSCHARGE T2Uv1 CHANGELOG
+ZepassCharge T2Uv1 Changelog
 - Added more support to more devices
 - Change checking method, using Su Cat instead of Dumpsys
 - Change toast notification

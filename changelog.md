@@ -1,4 +1,4 @@
-ZepassCharge T3U Changelog
+ZepassCharge T3U v1 Changelog
 - Initial Release on github
 - Added support to more devices
 - Add device check for devices compatibility

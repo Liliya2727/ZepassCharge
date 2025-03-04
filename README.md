@@ -26,11 +26,21 @@ I have created **three different versions** of this module, each with a unique a
 
 ## Link to each versio 
 
-- [ZepassCharge T1](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT1U) |
+- [ZepassCharge T1](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT1U) 
 
-- [ZepassCharge T2](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT2U) |
+- [ZepassCharge T2](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT2U) 
  
-- [ZepassCharge T3](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT3U) |
+- [ZepassCharge T3](https://github.com/Liliya2727/ZepassCharge/tree/ZepasschargeT3U)
+
+##Contributing
+**Want to improve ZepassCharge? Feel free to fork this repository**
+
+##Feedback & Issues
+
+**If you encounter any issues or have suggestions, open an issue on GitHub or contribute directly!
+
+🔗 **GitHub Repository:** [ZepassCharge](https://github.com/Liliya2727/ZepassCharge)
+🔗 **Fork the Repo:** [Fork Here](https://github.com/Liliya2727/ZepassCharge/fork)
 
 ## 📖 Usage  
 ```bash

@@ -1,16 +1,58 @@
 #!/bin/sh
-MODDIR=${0%/*}
-bypassflag="/data/local/tmp/tempbypass"
+
+# Generate game list filter
+game_list_filter="com.example.gamelist1|com.example.gamelist2$(awk '!/^[[:space:]]*$/ && !/^#/ && !(/[[:alnum:]]+[[:space:]]+[[:alnum:]]+[[:space:]]+[[:alnum:]]+/) {sub("-e ", ""); printf "|%s", $0}' "/data/ZepassCharge/gamelist.txt")"
+
+
+# Function to get battery percentage
+BatteryPercentage() {
+    if [ -f /sys/class/power_supply/battery/capacity ]; then
+        cat /sys/class/power_supply/battery/capacity
+    elif [ -f /sys/devices/platform/battery/power_supply/battery/capacity ]; then
+        cat /sys/devices/platform/battery/power_supply/battery/capacity
+    elif command -v termux-battery-status >/dev/null 2>&1; then
+        termux-battery-status | jq '.percentage'
+    elif [ -f /proc/stat ]; then
+        grep "battery" /proc/stat | awk '{print $2}'  # May not work on all devices
+    else
+        echo "Battery percentage not found"
+    fi
+}
+
+# Function to check if the phone is charging
+isCharging() {
+    if [ -f /sys/class/power_supply/battery/status ]; then
+        status=$(cat /sys/class/power_supply/battery/status)
+    elif [ -f /sys/devices/platform/battery/power_supply/battery/status ]; then
+        status=$(cat /sys/devices/platform/battery/power_supply/battery/status)
+    elif command -v termux-battery-status >/dev/null 2>&1; then
+        status=$(termux-battery-status | jq -r '.status')
+    elif [ -f /proc/stat ]; then
+        status=$(grep -i "charging" /proc/stat | awk '{print $2}')  # May not work on all devices
+    else
+        echo "Unknown"
+        return
+    fi
+
+    # Convert to lowercase for consistency
+    status=$(echo "$status" | tr '[:upper:]' '[:lower:]')
+
+    # Check for multiple valid charging states
+    case "$status" in
+        "charging"|"full"|"not discharging") echo "Charging" ;;
+        *) echo "Not Charging" ;;
+    esac
+}
+
 
 # Function to write values to sysfs/proc files
 apply() {
-	if [ -f "$2" ]; then
-		chmod 644 "$2" >/dev/null 2>&1
-		echo "$1" >"$2" 2>/dev/null
-		chmod 444 "$2" >/dev/null 2>&1
+	if [ -f $2 ]; then
+		chmod 644 $2 >/dev/null 2>&1
+		echo $1 >$2 2>/dev/null
+		chmod 444 $2 >/dev/null 2>&1
 	fi
 }
-
 
 # Enable bypass charging with path detection
 startBypass() {
@@ -97,37 +139,82 @@ disableBypass() {
     echo "No valid path found to disable bypass charging."
 }
 
-# apply mode based on game detection
+# Apply mode based on game detection
 apply_mode() {
-	# Ensure cur_mode is initialized
-	if [ -z "$cur_mode" ]; then
-		export cur_mode=0
-	fi
-	if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
-		export cur_mode=1
-		/system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
-		sleep 1
-		startBypass	
-elif [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
-		export cur_mode=0
-		/system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
-		sleep 1
-		disableBypass
-	fi
+    battery_level=$(BatteryPercentage)
+    charging_status=$(isCharging)
+
+    # Ensure cur_mode is initialized
+    if [ -z "$cur_mode" ]; then
+        export cur_mode=0
+    fi
+    
+    # Disable bypass if not charging
+    if [ "$charging_status" != "Charging" ]; then
+    if [ "$cur_mode" -ne 0 ]; then
+        export cur_mode=0
+        disableBypass
+    fi
+    return
+fi
+
+
+    # **Battery above or equal to 30% → Start bypass**
+    if [ "$battery_level" -ge 30 ]; then        
+        if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
+            export cur_mode=1
+            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
+            sleep 2
+            startBypass 
+        fi
+
+    # **Battery at or below 29% → Keep Charging 
+    elif [ "$battery_level" -le 29 ]; then
+        if [ "$1" -eq 2 ] && [ "$cur_mode" -ne 2 ]; then
+            export cur_mode=2
+            sleep 2
+            disableBypass
+        fi 
+    fi
+
+    # **If no game is active, disable everything**
+    if [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
+        export cur_mode=0
+        /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
+        sleep 1
+        disableBypass
+    fi
 }
 
-# Monitoring function
+# Monitoring function for game detection
 monitoring() {
-	while true; do
-		if [ ! -f "$bypassflag" ]; then		
-			apply_mode 1 # Enable Bypass Charge
-		else
-			apply_mode 0 # Disable Bypass Charge
-		fi
-		sleep 2 # Adjust sleep duration as needed
-	done
+    while true; do
+        window=$(dumpsys window)
+        gamestart=$(echo "$window" | grep -E 'mCurrentFocus|mFocusedApp' | grep -Eo "$game_list_filter" | tail -n 1)
+        screenoff=$(echo "$window" | grep "mScreen" | awk '{print $NF}') # More reliable detection
+        battery_level=$(BatteryPercentage)
+
+        if [ -n "$gamestart" ] && [ "$screenoff" != "false" ]; then
+            if [ "$battery_level" -ge 30 ]; then
+                apply_mode 1 # Start bypass
+            elif [ "$battery_level" -le 29 ]; then
+                apply_mode 2 # stop bypass
+            fi
+        else
+            apply_mode 0 # Disable all when no game is active
+        fi
+
+        sleep 5
+    done
 }
 
-monitoring &
 
-# This Shell Script is Open Source, you can edit it if you want. Don't forget to credit @Zexshia.
+# Start monitoring games
+monitoring
+
+
+
+
+
+
+#This Shell Script is OpenSource, you can edit it if you want don't forget to Credit @Zexshia

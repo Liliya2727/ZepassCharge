@@ -1,10 +1,9 @@
 #!/bin/sh
 
-# Generate game list filter
-game_list_filter="com.example.gamelist1|com.example.gamelist2$(awk '!/^[[:space:]]*$/ && !/^#/ && !(/[[:alnum:]]+[[:space:]]+[[:alnum:]]+[[:space:]]+[[:alnum:]]+/) {sub("-e ", ""); printf "|%s", $0}' "/data/ZepassCharge/gamelist.txt")"
-
-# Function to check if the phone is charging
-isCharging() {
+gamelistfilter="com.example.gamelist1|com.example.gamelist2$(awk '!/^[[:space:]]*$/ && !/^#/ && !(/[[:alnum:]]+[[:space:]]+[[:alnum:]]+[[:space:]]+[[:alnum:]]+/) {sub("-e ", ""); printf "|%s", $0}' "/data/ZepassCharge/gamelist.txt")"
+    
+# Check phone charging
+checkcharge() {
     if [ -f /sys/class/power_supply/battery/status ]; then
         status=$(cat /sys/class/power_supply/battery/status)
     elif [ -f /sys/devices/platform/battery/power_supply/battery/status ]; then
@@ -12,169 +11,143 @@ isCharging() {
     elif command -v termux-battery-status >/dev/null 2>&1; then
         status=$(termux-battery-status | jq -r '.status')
     elif [ -f /proc/stat ]; then
-        status=$(grep -i "charging" /proc/stat | awk '{print $2}')  # May not work on all devices
+        status=$(grep -i "charging" /proc/stat | awk '{print $2}')
     else
         echo "Unknown"
         return
     fi
-
-    # Convert to lowercase for consistency
     status=$(echo "$status" | tr '[:upper:]' '[:lower:]')
-
-    # Check for multiple valid charging states
     case "$status" in
         "charging"|"full"|"not discharging") echo "Charging" ;;
         *) echo "Not Charging" ;;
     esac
 }
-
-# Function to write values to sysfs/proc files
 apply() {
-	if [ -f $2 ]; then
-		chmod 644 $2 >/dev/null 2>&1
-		echo $1 >$2 2>/dev/null
-		chmod 444 $2 >/dev/null 2>&1
+	if [ -f "$2" ]; then
+		chmod 644 "$2" >/dev/null 2>&1
+		echo "$1" >"$2" 2>/dev/null
+		chmod 444 "$2" >/dev/null 2>&1
 	fi
 }
-
-# Enable bypass charging with path detection
-startBypass() {
-    
-        
-    apply_if_exists() {
-        if [ -e "$2" ]; then  # Check if the path exists
+# Enable Bypass
+startBypass() {        
+    applypath() {
+        if [ -e "$2" ]; then  
             apply "$1" "$2"
-            return 0  # Stop execution if a valid path is found
+            return 0  
         fi
         return 1
     }
+	applypath "1" "/sys/class/power_supply/battery/batt_slate_mode" && return
+	applypath "1" "/sys/class/power_supply/battery/battery_input_suspend" && return
+	applypath "1" "/sys/class/power_supply/battery/bd_trickle_cnt" && return
+	applypath "0" "/sys/class/power_supply/battery/device/Charging_Enable" && return
+	applypath "0" "/sys/class/power_supply/battery/charging_enabled" && return
+	applypath "1" "/sys/class/power_supply/battery/op_disable_charge" && return
+	applypath "1" "/sys/class/power_supply/battery/store_mode" && return
+	applypath "1" "/sys/class/power_supply/battery/test_mode" && return
+	applypath "1" "/sys/class/power_supply/battery/battery_ext/smart_charging_interruption" && return
+	applypath "0" "/sys/class/power_supply/battery/siop_level" && return
+	applypath "0" "/sys/class/power_supply/battery/battery_charging_enabled" && return
+	applypath "0" "/sys/class/power_supply/battery/mmi_charging_enable" && return
+	applypath "1" "/sys/class/power_supply/battery/stop_charging_enable" && return
+	applypath "1" "/sys/class/power_supply/battery/store_mode" && return
+	applypath "0" "/sys/class/hw_power/charger/charge_data/enable_charger" && return
+	applypath "1" "/sys/class/qcom-battery/input_suspend" && return
+	applypath "1" "/sys/devices/platform/charger/bypass_charger" && return
+	applypath "1" "/sys/devices/platform/charger/tran_aichg_disable_charger" && return
+	applypath "0" "/sys/devices/platform/huawei_charger/enable_charger" && return
+	applypath "1" "/sys/devices/platform/lge-unified-nodes/charging_completed" && return
+	applypath "0" "/sys/devices/platform/lge-unified-nodes/charging_enable" && return
+	applypath "1" "/sys/devices/platform/mt-battery/disable_charger" && return
+	applypath "1" "/sys/devices/platform/soc/soc:google,charger/charge_disable" && return
+	applypath "1" "/sys/kernel/debug/google_charger/chg_suspend" && return
+	applypath "1" "/sys/kernel/debug/google_charger/input_suspend" && return
+	applypath "on" "/sys/kernel/nubia_charge/charger_bypass" && return
+	applypath "0 1" "/proc/mtk_battery_cmd/current_cmd" && return
 
-	apply_if_exists "1" "/sys/class/power_supply/battery/batt_slate_mode" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/battery_input_suspend" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/bd_trickle_cnt" && return
-	apply_if_exists "0" "/sys/class/power_supply/battery/device/Charging_Enable" && return
-	apply_if_exists "0" "/sys/class/power_supply/battery/charging_enabled" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/op_disable_charge" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/store_mode" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/test_mode" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/battery_ext/smart_charging_interruption" && return
-	apply_if_exists "0" "/sys/class/power_supply/battery/siop_level" && return
-	apply_if_exists "0" "/sys/class/power_supply/battery/battery_charging_enabled" && return
-	apply_if_exists "0" "/sys/class/power_supply/battery/mmi_charging_enable" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/stop_charging_enable" && return
-	apply_if_exists "1" "/sys/class/power_supply/battery/store_mode" && return
-	apply_if_exists "0" "/sys/class/hw_power/charger/charge_data/enable_charger" && return
-	apply_if_exists "1" "/sys/class/qcom-battery/input_suspend" && return
-	apply_if_exists "1" "/sys/devices/platform/charger/bypass_charger" && return
-	apply_if_exists "1" "/sys/devices/platform/charger/tran_aichg_disable_charger" && return
-	apply_if_exists "0" "/sys/devices/platform/huawei_charger/enable_charger" && return
-	apply_if_exists "1" "/sys/devices/platform/lge-unified-nodes/charging_completed" && return
-	apply_if_exists "0" "/sys/devices/platform/lge-unified-nodes/charging_enable" && return
-	apply_if_exists "1" "/sys/devices/platform/mt-battery/disable_charger" && return
-	apply_if_exists "1" "/sys/devices/platform/soc/soc:google,charger/charge_disable" && return
-	apply_if_exists "1" "/sys/kernel/debug/google_charger/chg_suspend" && return
-	apply_if_exists "1" "/sys/kernel/debug/google_charger/input_suspend" && return
-	apply_if_exists "on" "/sys/kernel/nubia_charge/charger_bypass" && return
-	apply_if_exists "0 1" "/proc/mtk_battery_cmd/current_cmd" && return
-
-    echo "No valid path found for bypass charging."
 }
-
-# Disable bypass charging with path detection
+# Disable bypass 
 disableBypass() {
-    apply_if_exists() {
-        if [ -e "$2" ]; then  # Check if the path exists
+    applypath() {
+        if [ -e "$2" ]; then  
             apply "$1" "$2"
-            return 0  # Stop execution if a valid path is found
+            return 0
         fi
         return 1
     }
-
-    # Apply values to disable bypass charging
-    apply_if_exists "0" "/sys/class/power_supply/battery/batt_slate_mode" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/battery_input_suspend" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/bd_trickle_cnt" && return
-    apply_if_exists "1" "/sys/class/power_supply/battery/device/Charging_Enable" && return
-    apply_if_exists "1" "/sys/class/power_supply/battery/charging_enabled" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/op_disable_charge" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/store_mode" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/test_mode" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/battery_ext/smart_charging_interruption" && return
-    apply_if_exists "1" "/sys/class/power_supply/battery/siop_level" && return
-    apply_if_exists "1" "/sys/class/power_supply/battery/battery_charging_enabled" && return
-    apply_if_exists "1" "/sys/class/power_supply/battery/mmi_charging_enable" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/stop_charging_enable" && return
-    apply_if_exists "0" "/sys/class/power_supply/battery/store_mode" && return
-    apply_if_exists "1" "/sys/class/hw_power/charger/charge_data/enable_charger" && return
-    apply_if_exists "0" "/sys/class/qcom-battery/input_suspend" && return
-    apply_if_exists "0" "/sys/devices/platform/charger/bypass_charger" && return
-    apply_if_exists "0" "/sys/devices/platform/charger/tran_aichg_disable_charger" && return
-    apply_if_exists "1" "/sys/devices/platform/huawei_charger/enable_charger" && return
-    apply_if_exists "0" "/sys/devices/platform/lge-unified-nodes/charging_completed" && return
-    apply_if_exists "1" "/sys/devices/platform/lge-unified-nodes/charging_enable" && return
-    apply_if_exists "0" "/sys/devices/platform/mt-battery/disable_charger" && return
-    apply_if_exists "0" "/sys/devices/platform/soc/soc:google,charger/charge_disable" && return
-    apply_if_exists "0" "/sys/kernel/debug/google_charger/chg_suspend" && return
-    apply_if_exists "0" "/sys/kernel/debug/google_charger/input_suspend" && return
-    apply_if_exists "off" "/sys/kernel/nubia_charge/charger_bypass" && return
-    apply_if_exists "0 0" "/proc/mtk_battery_cmd/current_cmd" && return
-
-    echo "No valid path found to disable bypass charging."
+    applypath "0" "/sys/class/power_supply/battery/batt_slate_mode" && return
+    applypath "0" "/sys/class/power_supply/battery/battery_input_suspend" && return
+    applypath "0" "/sys/class/power_supply/battery/bd_trickle_cnt" && return
+    applypath "1" "/sys/class/power_supply/battery/device/Charging_Enable" && return
+    applypath "1" "/sys/class/power_supply/battery/charging_enabled" && return
+    applypath "0" "/sys/class/power_supply/battery/op_disable_charge" && return
+    applypath "0" "/sys/class/power_supply/battery/store_mode" && return
+    applypath "0" "/sys/class/power_supply/battery/test_mode" && return
+    applypath "0" "/sys/class/power_supply/battery/battery_ext/smart_charging_interruption" && return
+    applypath "1" "/sys/class/power_supply/battery/siop_level" && return
+    applypath "1" "/sys/class/power_supply/battery/battery_charging_enabled" && return
+    applypath "1" "/sys/class/power_supply/battery/mmi_charging_enable" && return
+    applypath "0" "/sys/class/power_supply/battery/stop_charging_enable" && return
+    applypath "0" "/sys/class/power_supply/battery/store_mode" && return
+    applypath "1" "/sys/class/hw_power/charger/charge_data/enable_charger" && return
+    applypath "0" "/sys/class/qcom-battery/input_suspend" && return
+    applypath "0" "/sys/devices/platform/charger/bypass_charger" && return
+    applypath "0" "/sys/devices/platform/charger/tran_aichg_disable_charger" && return
+    applypath "1" "/sys/devices/platform/huawei_charger/enable_charger" && return
+    applypath "0" "/sys/devices/platform/lge-unified-nodes/charging_completed" && return
+    applypath "1" "/sys/devices/platform/lge-unified-nodes/charging_enable" && return
+    applypath "0" "/sys/devices/platform/mt-battery/disable_charger" && return
+    applypath "0" "/sys/devices/platform/soc/soc:google,charger/charge_disable" && return
+    applypath "0" "/sys/kernel/debug/google_charger/chg_suspend" && return
+    applypath "0" "/sys/kernel/debug/google_charger/input_suspend" && return
+    applypath "off" "/sys/kernel/nubia_charge/charger_bypass" && return
+    applypath "0 0" "/proc/mtk_battery_cmd/current_cmd" && return
 }
 
-apply_mode() {
-    charging_status=$(isCharging)
-
-    # Ensure cur_mode is initialized
-    if [ -z "$cur_mode" ]; then
-        export cur_mode=0
+# Apply function
+applybypass() {
+    chargingstatus=$(checkcharge)
+    if [ -z "$state" ]; then
+        export state=0
+    fi 
+    if [ "$chargingstatus" != "Charging" ]; then
+        if [ "$state" -ne 0 ]; then
+          export state=0
+          disableBypass
+        fi
+     return
     fi
-    
-    if [ "$charging_status" != "Charging" ]; then
-    if [ "$cur_mode" -ne 0 ]; then
-        export cur_mode=0
+    if [ "$1" -eq 1 ] && [ "$state" -ne 1 ]; then
+        export state=1
+        /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
+        sleep 2
+        startBypass
+    fi
+    if [ "$1" -eq 0 ] && [ "$state" -ne 0 ]; then
+        export state=0
+        /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
+        sleep 1
         disableBypass
     fi
-    return
-fi
-
-        if [ "$1" -eq 1 ] && [ "$cur_mode" -ne 1 ]; then
-            export cur_mode=1
-            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging applied!" -n bellavita.toast/.MainActivity
-            sleep 2
-            startBypass
-        fi
-    
-        if [ "$1" -eq 0 ] && [ "$cur_mode" -ne 0 ]; then
-            export cur_mode=0
-            /system/bin/am start -a android.intent.action.MAIN -e toasttext "Bypass charging disabled!" -n bellavita.toast/.MainActivity
-            sleep 1
-            disableBypass
-        fi
-    
 }
 
-# Monitoring function for game detection
+# Monitoring function
 monitoring() {
 	while true; do
-		window=$(dumpsys window)
-		gamestart=$(echo "$window" | grep -E 'mCurrentFocus|mFocusedApp' | grep -Eo "$game_list_filter" | tail -n 1)
-		screenoff=$(echo "$window" | grep "mScreen" | grep -Eo "false" | tail -n 1)
-
+	window=$(dumpsys window)
+    gamestart=$(echo "$window" | grep -E 'mCurrentFocus|mFocusedApp' | grep -Eo "$gamelistfilter" | tail -n 1)
+    screenoff=$(echo "$window" | grep "mScreen" | grep -Eo "false" | tail -n 1)
 		if [ -n "$gamestart" ] && [ "$screenoff" != "false" ]; then
-			pid=$(pgrep -f "$gamestart")
-			apply_mode 1 # Enable Bypass Charge
+			applybypass 1
 		else
-			apply_mode 0 # Disable Bypass Charge
+			applybypass 0
 		fi
 	sleep 5
 done		
 }
 
-# Start monitoring games
 monitoring
-
-
 
 
 

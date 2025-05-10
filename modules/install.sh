@@ -77,5 +77,13 @@ touch "/data/local/tmp/tempbypass"
 unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
 unzip -o "$ZIPFILE" 'service.sh' -d "$MODPATH" >&2
 unzip -o "$ZIPFILE" 'action.sh' -d $MODPATH >&2
-
+if pm list packages | grep -q bellavita.toast; then
+	ui_print "- The Bellavita Toast app is already installed."
+else
+	ui_print "- Bellavita Toast isn't installed"
+	ui_print "- Installing bellavita toast"
+	unzip -o "$ZIPFILE" 'toast.apk' -d $MODPATH >&2
+	pm install $MODPATH/toast.apk
+	rm $MODPATH/toast.apk
+fi
 set_perm_recursive $MODPATH 0 0 0777 0777

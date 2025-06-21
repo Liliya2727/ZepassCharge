@@ -1,0 +1,88 @@
+#!/bin/sh
+
+#
+# Copyright (C) 2024-2025 Zexshia
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+file="/data/adb/.config/encore/current_profile"
+value=$(cat "$file" 2>/dev/null)
+zeshia() {
+        chmod 644 "$2"
+        echo "$1" >"$2" 
+        chmod 444 "$2"
+}
+applypath() {
+        if [ -e "$2" ]; then  
+            zeshia "$1" "$2"
+            return 0
+        fi
+        return 1       
+}
+startBypass() {
+	applypath "1" "/sys/class/power_supply/battery/batt_slate_mode" && return
+	applypath "1" "/sys/class/power_supply/battery/battery_input_suspend" && return
+	applypath "1" "/sys/class/power_supply/battery/bd_trickle_cnt" && return
+	applypath "0" "/sys/class/power_supply/battery/device/Charging_Enable" && return
+	applypath "0" "/sys/class/power_supply/battery/charging_enabled" && return
+	applypath "1" "/sys/class/power_supply/battery/op_disable_charge" && return
+	applypath "1" "/sys/class/power_supply/battery/store_mode" && return
+	applypath "1" "/sys/class/power_supply/battery/test_mode" && return
+	applypath "1" "/sys/class/power_supply/battery/battery_ext/smart_charging_interruption" && return
+	applypath "0" "/sys/class/power_supply/battery/siop_level" && return
+	applypath "0" "/sys/class/power_supply/battery/battery_charging_enabled" && return 
+	applypath "0" "/sys/class/power_supply/battery/mmi_charging_enable" && return
+	applypath "1" "/sys/class/power_supply/battery/stop_charging_enable" && return
+	applypath "1" "/sys/class/power_supply/battery/store_mode" && return
+	applypath "0" "/sys/class/hw_power/charger/charge_data/enable_charger" && return
+	applypath "1" "/sys/devices/platform/charger/bypass_charger" && return
+	applypath "0 1" "/proc/mtk_battery_cmd/current_cmd" && return
+	applypath "1" "/sys/devices/platform/charger/tran_aichg_disable_charger" && return
+	applypath "1" "/sys/devices/platform/mt-battery/disable_charger" && return
+}
+stopBypass() {
+    applypath "0" "/sys/class/power_supply/battery/batt_slate_mode" && return
+    applypath "0" "/sys/class/power_supply/battery/battery_input_suspend" && return
+    applypath "0" "/sys/class/power_supply/battery/bd_trickle_cnt" && return
+    applypath "1" "/sys/class/power_supply/battery/device/Charging_Enable" && return
+    applypath "1" "/sys/class/power_supply/battery/charging_enabled" && return
+    applypath "0" "/sys/class/power_supply/battery/op_disable_charge" && return
+    applypath "0" "/sys/class/power_supply/battery/store_mode" && return
+    applypath "0" "/sys/class/power_supply/battery/test_mode" && return
+    applypath "0" "/sys/class/power_supply/battery/battery_ext/smart_charging_interruption" && return
+    applypath "1" "/sys/class/power_supply/battery/siop_level" && return
+    applypath "1" "/sys/class/power_supply/battery/battery_charging_enabled" && return
+    applypath "1" "/sys/class/power_supply/battery/mmi_charging_enable" && return
+    applypath "0" "/sys/class/power_supply/battery/stop_charging_enable" && return
+    applypath "0" "/sys/class/power_supply/battery/store_mode" && return
+    applypath "1" "/sys/class/hw_power/charger/charge_data/enable_charger" && return
+    applypath "0" "/sys/devices/platform/charger/bypass_charger" && return
+    applypath "0 0" "/proc/mtk_battery_cmd/current_cmd" && return
+    applypath "0" "/sys/devices/platform/charger/tran_aichg_disable_charger" && return
+    applypath "0" "/sys/devices/platform/mt-battery/disable_charger" && return
+}
+
+
+# Execute bypass based on profiler settings
+if [ "$value" = "1" ]; then
+    startBypass
+elif [ "$value" = "2" ]; then    
+    stopBypass
+elif [ "$value" = "0" ]; then
+    stopBypass
+elif [ "$value" = "3" ]; then   
+    stopBypass
+fi
+
+exit 0

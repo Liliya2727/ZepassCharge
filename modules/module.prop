@@ -1,7 +1,7 @@
-id=ZepassCharge
+id=ZepassCHG
 name=ZepassCharge!!
-version=Type 3U
-versionCode=1301
+version=Type 4U | V1
+versionCode=1401
 author=Zexshia
-description=Status • Disabled❌
-updateJson=https://raw.githubusercontent.com/Liliya2727/ZepassCharge/ZepasschargeT3U/zepassupdate.json
+description=Universal bypass charging module for Encore!
+updateJson=
